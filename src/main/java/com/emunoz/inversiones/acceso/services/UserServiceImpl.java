@@ -5,6 +5,8 @@ import com.emunoz.inversiones.acceso.models.request.UserRequestDTO;
 import com.emunoz.inversiones.acceso.models.response.UserResponseDTO;
 import com.emunoz.inversiones.acceso.repositry.UserRepository;
 import com.emunoz.inversiones.acceso.userMapper.UserMapper;
+import de.mkammerer.argon2.Argon2;
+import de.mkammerer.argon2.Argon2Factory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataAccessException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -85,9 +87,14 @@ public class UserServiceImpl implements UserService {
     //-------------------
     @Override
     public ResponseEntity<Object> createUser(UserRequestDTO userRequest) {
-        System.out.println("PASE POR AQUI");
+
         Optional<UserEntity> existingUser = userRepository.findUserByEmail(userRequest.getEmail());
         response = new HashMap<>();
+        Argon2 argon2 = Argon2Factory.create(Argon2Factory.Argon2Types.ARGON2id);
+        String hash = argon2.hash(1, 1024, 1, userRequest.getPassword());
+        userRequest.setPassword(hash);
+
+
 
         if (existingUser.isPresent()) {
             return new ResponseEntity<>("El email ya esta registrado", HttpStatus.CONFLICT);
@@ -111,11 +118,8 @@ public class UserServiceImpl implements UserService {
     //-------------------
     @Override
     public ResponseEntity<Object> updateUser(UserRequestDTO userRequest) {
-        System.out.println("UPDATE USER");
         response = new HashMap<>();
         Optional<UserEntity> existingUser = userRepository.findUserById(userRequest.getId());
-        System.out.println("request" + userRequest);
-        System.out.println("usuario existe" + existingUser);
 
         // Producto no encontrado
         if (!existingUser.isPresent()) {
