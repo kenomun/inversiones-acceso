@@ -9,6 +9,10 @@ import javax.persistence.*;
 @Data
 public class UserEntity {
 
+    @ManyToOne
+    @JoinColumn(name = "role_id", referencedColumnName = "id")
+    private RoleEntity role;
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "id")
@@ -26,26 +30,23 @@ public class UserEntity {
     @Column(name = "state")
     private String state;
 
-    @Column(name = "role_id")
-    private Integer role_id;
-
     public UserEntity() {
     }
 
-    public UserEntity(String name, String email, String password, String state, Integer role_id) {
+    public UserEntity(String name, String email, String password, String state) {
         this.name = name;
         this.email = email;
         this.password = password;
         this.state = state;
-        this.role_id = role_id;
+
     }
 
-    public UserEntity(Long id, String name, String email, String password, String state, Integer role_id) {
+    public UserEntity(Long id, String name, String email, String password, String state) {
         this.id = id;
         this.name = name;
         this.email = email;
         this.password = password;
         this.state = state;
-        this.role_id = role_id;
+
     }
 }

@@ -10,17 +10,25 @@ public class UserResponseDTO {
     private String email;
     private String password;
     private String state;
-    private Integer role_id;
+    private String roleDescription;
+    private Integer rolePermission;
 
     public UserResponseDTO() {
     }
 
-    public UserResponseDTO(Long id, String name, String email, String password, String state, Integer role_id) {
+    public UserResponseDTO(Long id, String name, String email, String password, String state) {
         this.id = id;
         this.name = name;
         this.email = email;
         this.password = password;
         this.state = state;
-        this.role_id = role_id;
+    }
+
+    public void setRoleDescription(String description) {
+        this.roleDescription = description;
+    }
+
+    public void setRolePermission(Integer permission) {
+        this.rolePermission = permission;
     }
 }

@@ -1,10 +1,13 @@
 package com.emunoz.inversiones.acceso.services;
 
+import com.emunoz.inversiones.acceso.models.entity.RoleEntity;
 import com.emunoz.inversiones.acceso.models.entity.UserEntity;
 import com.emunoz.inversiones.acceso.models.request.UserRequestDTO;
 import com.emunoz.inversiones.acceso.models.response.UserResponseDTO;
+import com.emunoz.inversiones.acceso.repositry.RoleRepository;
 import com.emunoz.inversiones.acceso.repositry.UserRepository;
 import com.emunoz.inversiones.acceso.userMapper.UserMapper;
+import com.emunoz.inversiones.acceso.util.JWTUtil;
 import de.mkammerer.argon2.Argon2;
 import de.mkammerer.argon2.Argon2Factory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +30,12 @@ public class UserServiceImpl implements UserService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private RoleRepository roleRepository;
+
+    @Autowired
+    private JWTUtil jwtUtil;
+
     @PersistenceContext
     private EntityManager entityManager;
 
@@ -41,16 +50,26 @@ public class UserServiceImpl implements UserService {
         response = new HashMap<>();
         try {
             List<UserEntity> userEntitiesEntities = this.userRepository.findAll();
-            List<UserResponseDTO> productResponseDTOs = userEntitiesEntities.stream()
-                    .map(UserMapper::toResponseDTO)
+            List<UserResponseDTO> userResponseDTOs = userEntitiesEntities.stream()
+                    .map(userEntity -> {
+                        UserResponseDTO dto = UserMapper.toResponseDTO(userEntity);
+
+                        if (userEntity.getRole() != null) {
+                            dto.setRoleDescription(userEntity.getRole().getDescription());
+                            dto.setRolePermission(userEntity.getRole().getPermission());
+                        }
+
+                        return dto;
+                    })
                     .collect(Collectors.toList());
 
             if (userEntitiesEntities.isEmpty()) {
                 return new ResponseEntity<>(HttpStatus.NO_CONTENT);
             }
 
+
             response.put("message", "Usuarios encontrados");
-            response.put("data", productResponseDTOs);
+            response.put("data", userResponseDTOs);
             return new ResponseEntity<>(response, HttpStatus.OK);
         } catch (DataAccessException ex) {
             response.put("message", "Error de conexión a la base de datos: " + ex.getMessage());
@@ -74,7 +93,14 @@ public class UserServiceImpl implements UserService {
         }
 
         UserEntity userEntity = userOptional.get();
+        RoleEntity userRole = userEntity.getRole();
         UserResponseDTO userResponseDTO = UserMapper.toResponseDTO(userEntity);
+
+        if (userRole != null) {
+            userResponseDTO.setRoleDescription(userRole.getDescription());
+            userResponseDTO.setRolePermission(userRole.getPermission());
+        }
+
         response.put("data", userResponseDTO);
         response.put("message", "Usuario encontrado");
         return new ResponseEntity<>(
@@ -90,6 +116,8 @@ public class UserServiceImpl implements UserService {
 
         Optional<UserEntity> existingUser = userRepository.findUserByEmail(userRequest.getEmail());
         response = new HashMap<>();
+
+        // Codificar el password
         Argon2 argon2 = Argon2Factory.create(Argon2Factory.Argon2Types.ARGON2id);
         String hash = argon2.hash(1, 1024, 1, userRequest.getPassword());
         userRequest.setPassword(hash);
@@ -101,11 +129,20 @@ public class UserServiceImpl implements UserService {
         } else {
             try {
                 UserEntity newUser = UserMapper.toEntity(userRequest);
+
+                // Asigna role por defecto = 1 (user)
+                RoleEntity defaultRole = roleRepository.findById(1).orElse(null);
+                newUser.setRole(defaultRole);
+
                 userRepository.save(newUser);
+
+                RoleEntity userRole = newUser.getRole();
                 UserResponseDTO newUserResponse = UserMapper.toResponseDTO(newUser);
+                newUserResponse.setRoleDescription(userRole.getDescription());
+                newUserResponse.setRolePermission(userRole.getPermission());
+
                 response.put("message", "Usuario creado con existo");
                 response.put("data", newUserResponse);
-
                 return new ResponseEntity<>(response, HttpStatus.CREATED);
             } catch (DataIntegrityViolationException ex) {
 
@@ -144,26 +181,31 @@ public class UserServiceImpl implements UserService {
         }
 
         if (userRequest.getPassword() != null) {
-        userToUpdate.setPassword(userRequest.getPassword());
+            userToUpdate.setPassword(userRequest.getPassword());
         }
         if (userRequest.getState() != null) {
-        userToUpdate.setState(userRequest.getState());
+            userToUpdate.setState(userRequest.getState());
         }
         if (userRequest.getRole_id() != null) {
-        userToUpdate.setRole_id(userRequest.getRole_id());
+            userToUpdate.setRole(roleRepository.findById(userRequest.getRole_id()).orElse(null));
         }
 
-
         userRepository.save(userToUpdate);
-        response.put("message", "Producto actualizado con éxito");
-        response.put("data", UserMapper.toResponseDTO(userToUpdate));
+
+        RoleEntity userRole = userToUpdate.getRole();
+        UserResponseDTO UserUpdateResponse = UserMapper.toResponseDTO(userToUpdate);
+        UserUpdateResponse.setRoleDescription(userRole.getDescription());
+        UserUpdateResponse.setRolePermission(userRole.getPermission());
+
+        response.put("message", "Usuario actualizado con éxito");
+        response.put("data", UserUpdateResponse);
         return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
 
     //-------------------
     @Override
-    public ResponseEntity<Object> deleteUser(Long UserId) {
+    public ResponseEntity<Object> deleteUser(Long UserId, String token) {
         response = new HashMap<>();
         boolean exist = this.userRepository.existsById(UserId);
 
@@ -174,6 +216,13 @@ public class UserServiceImpl implements UserService {
                     response,
                     HttpStatus.CONFLICT
             );
+        }
+
+
+        if (jwtUtil.getPermission(token) !=  2) { // Verifica si el usuario tiene permiso 2 (o el permiso requerido)
+            response.put("error", true);
+            response.put("message", "Permiso insuficiente para eliminar usuarios.");
+            return new ResponseEntity<>(response, HttpStatus.UNAUTHORIZED);
         }
 
         userRepository.deleteById(UserId);

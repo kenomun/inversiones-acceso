@@ -12,5 +12,5 @@ public interface UserService {
     ResponseEntity<Object> createUser(UserRequestDTO userRequest);
     ResponseEntity<Object> updateUser(UserRequestDTO userRequest);
 
-    ResponseEntity<Object> deleteUser(Long id);
+    ResponseEntity<Object> deleteUser(Long id, String token);
 }

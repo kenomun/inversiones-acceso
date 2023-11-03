@@ -59,7 +59,7 @@ public class UserController {
             }
     )
     @GetMapping (path = "{usuarioId}")
-    public ResponseEntity<Object> getUser(@PathVariable("productId") Long id) {
+    public ResponseEntity<Object> getUser(@PathVariable("usuarioId") Long id) {
         return userService.getUserById(id);
     }
 
@@ -119,8 +119,8 @@ public class UserController {
             }
     )
     @DeleteMapping(path = "{usuarioId}")
-    public ResponseEntity<Object> deleteUser(@PathVariable("usuarioId") Long UserId){
-        return this.userService.deleteUser(UserId);
+    public ResponseEntity<Object> deleteUser(@PathVariable("usuarioId") Long UserId, @RequestHeader(name = "Authorization") String token){
+        return this.userService.deleteUser(UserId, token);
 
     }
 }
