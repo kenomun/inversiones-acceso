@@ -1,6 +1,7 @@
 package com.emunoz.inversiones.acceso.util;
 
 import io.jsonwebtoken.*;
+import lombok.extern.log4j.Log4j2;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -14,6 +15,7 @@ import java.util.Date;
  * @author Mahesh
  */
 @Component
+@Log4j2
 public class JWTUtil {
     @Value("${security.jwt.secret}")
     private String key;
@@ -23,9 +25,6 @@ public class JWTUtil {
 
     @Value("${security.jwt.ttlMillis}")
     private long ttlMillis;
-
-    private final Logger log = LoggerFactory
-            .getLogger(JWTUtil.class);
 
     /**
      * Create a new token.
@@ -69,12 +68,15 @@ public class JWTUtil {
      * @return
      */
     public String getValue(String jwt) {
+        log.info("Token email {}",jwt);
         // This line will throw an exception if it is not a signed JWS (as
         // expected)
         Claims claims = Jwts.parser().setSigningKey(DatatypeConverter.parseBase64Binary(key))
                 .parseClaimsJws(jwt).getBody();
 
+        log.info("Token Email {}",claims.getSubject());
         return claims.getSubject();
+
     }
 
     /**
@@ -89,19 +91,25 @@ public class JWTUtil {
         Claims claims = Jwts.parser().setSigningKey(DatatypeConverter.parseBase64Binary(key))
                 .parseClaimsJws(jwt).getBody();
 
+        log.info("ID {}",claims.getId());
         return claims.getId();
     }
 
 
     public Integer getPermission(String jwt) {
+        log.info("Token permission {}",jwt);
         // This line will throw an exception if it is not a signed JWS (as
         // expected)
-        Claims claims = Jwts.parser().setSigningKey(DatatypeConverter.parseBase64Binary(key))
-                .parseClaimsJws(jwt).getBody();
+        try {
+            Claims claims = Jwts.parser().setSigningKey(DatatypeConverter.parseBase64Binary(key))
+                    .parseClaimsJws(jwt).getBody();
 
-        Integer permission = claims.get("permission", Integer.class);
+            return Integer.parseInt(claims.get("permission", String.class));
+        } catch (SignatureException ex){
+            log.error(ex.getMessage());
+            return 0;
+        }
 
-        return permission;
     }
 
     public void verifyToken(String jwt) {
@@ -116,12 +124,9 @@ public class JWTUtil {
             String permission = claims.get("permission", String.class);
 
             // Mostrar valores del token
-            System.out.println("ID: " + id);
-            System.out.println("Email: " + email);
-            System.out.println("Permission: " + permission);
+
         } catch (JwtException ex) {
 
-            System.err.println("Token inválido: " + ex.getMessage());
         }
     }
 }

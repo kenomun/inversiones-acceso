@@ -1,24 +1,28 @@
 package com.emunoz.inversiones.acceso.controllers;
 
-
 import com.emunoz.inversiones.acceso.Validation.ValidationUtils;
-import com.emunoz.inversiones.acceso.models.entity.UserEntity;
 import com.emunoz.inversiones.acceso.models.request.UserRequestDTO;
+import com.emunoz.inversiones.acceso.models.response.UserResponseDTO;
 import com.emunoz.inversiones.acceso.services.UserServiceImpl;
+import com.emunoz.inversiones.acceso.util.JWTUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Objects;
 
 @RestController
+@Log4j2
 @RequestMapping(path = "api/V1/usuario")
 public class UserController {
     private final UserServiceImpl userService;
@@ -30,6 +34,9 @@ public class UserController {
 
     @Autowired
     private ValidationUtils validationUtils;
+
+    @Autowired
+    private JWTUtil jwtUtil;
     //-------------------
 
     @Operation(summary = "Servicio que lista los usuarios")
@@ -43,8 +50,22 @@ public class UserController {
             }
     )
     @GetMapping
-    public ResponseEntity<Object> getUsers() {
-        return userService.getUsers();
+    public ResponseEntity<UserResponseDTO> getUsers(@RequestHeader(name = "Authorization") String token) {
+        if(jwtUtil.getPermission(token) != 2) {
+            UserResponseDTO res = new UserResponseDTO();
+            res.setMessage("Usuario no autorizado");
+            res.setCode(0);
+            return new ResponseEntity<>(res, HttpStatus.UNAUTHORIZED);
+        }
+        UserResponseDTO res = userService.getUsersAll();
+
+        if (res.getCode() == 1){
+            return new ResponseEntity<>(res, HttpStatus.NOT_FOUND);
+        } else if (res.getCode() == 2){
+            return new ResponseEntity<>(res, HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(res, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     //-------------------
@@ -56,11 +77,28 @@ public class UserController {
                     }),
                     @ApiResponse(responseCode = "204", description = "No se encontro el usuario", content = @Content),
                     @ApiResponse(responseCode = "500", description = "Error interno del servidor", content = @Content),
+                    @ApiResponse(responseCode = "401", description = "Error ide autorización", content = @Content),
             }
     )
     @GetMapping (path = "{usuarioId}")
-    public ResponseEntity<Object> getUser(@PathVariable("usuarioId") Long id) {
-        return userService.getUserById(id);
+    public ResponseEntity<UserResponseDTO> getUser(@PathVariable("usuarioId") Long id, @RequestHeader(name = "Authorization") String token) {
+
+        if(jwtUtil.getPermission(token) != 2) {
+            UserResponseDTO res = new UserResponseDTO();
+            res.setMessage("Usuario no autorizado");
+            res.setCode(0);
+            return new ResponseEntity<>(res, HttpStatus.UNAUTHORIZED);
+        }
+
+        UserResponseDTO res = userService.getUserById(id);
+
+        if (res.getCode() == 1){
+            return new ResponseEntity<>(res, HttpStatus.NOT_FOUND);
+        } else if (res.getCode() == 2){
+            return new ResponseEntity<>(res, HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(res, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     //-------------------
@@ -74,18 +112,22 @@ public class UserController {
             }
     )
     @PostMapping
-    public ResponseEntity<Object> createUser(@Validated @RequestBody UserRequestDTO userRequest, BindingResult bindingResult) {
-        ResponseEntity<Object> validationError = validationUtils.handleValidationErrors(bindingResult);
+    public ResponseEntity<UserResponseDTO> createUser(@Validated @RequestBody UserRequestDTO userRequest, BindingResult bindingResult) {
+
+        ResponseEntity<UserResponseDTO> validationError = validationUtils.handleValidationErrors(bindingResult);
         if (validationError != null) {
             return validationError;
         }
 
-        UserEntity userEntity = new UserEntity();
-        userEntity.setName(userRequest.getEmail());
+        UserResponseDTO res = userService.createUser(userRequest);
 
-        ResponseEntity<Object> result = userService.createUser(userRequest);
-
-        return new ResponseEntity<>(result.getBody(), result.getStatusCode());
+        if (res.getCode() == 1){
+            return new ResponseEntity<>(res, HttpStatus.CONFLICT);
+        } else if (res.getCode() == 2){
+            return new ResponseEntity<>(res, HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(res, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
     //-------------------
 
@@ -98,14 +140,36 @@ public class UserController {
             }
     )
     @PutMapping
-    public ResponseEntity<Object> updateProduct(@Validated @RequestBody UserRequestDTO userRequest, BindingResult bindingResult){
-        ResponseEntity<Object> validationError = validationUtils.handleValidationErrors(bindingResult);
+    public ResponseEntity<UserResponseDTO> updateProduct(@Validated @RequestBody UserRequestDTO userRequest, BindingResult bindingResult, @RequestHeader(name = "Authorization") String token){
+
+        boolean permissionVerified = jwtUtil.getPermission(token) == 2;
+        boolean idVerified = Objects.equals(jwtUtil.getKey(token), String.valueOf(userRequest.getId()));
+        boolean emailVerified = Objects.equals(jwtUtil.getValue(token), userRequest.getEmail());
+
+        if(!permissionVerified || !emailVerified || !idVerified ) {
+            UserResponseDTO res = new UserResponseDTO();
+            res.setMessage("Usuario no autorizado");
+            res.setCode(0);
+            return new ResponseEntity<>(res, HttpStatus.UNAUTHORIZED);
+        }
+
+
+        ResponseEntity<UserResponseDTO> validationError = validationUtils.handleValidationErrors(bindingResult);
         if (validationError != null) {
             return validationError;
         }
 
-        ResponseEntity<Object> result = userService.updateUser(userRequest);
-        return new ResponseEntity<>(result.getBody(), result.getStatusCode());
+        UserResponseDTO res = userService.updateUser(userRequest);
+
+        if (res.getCode() == 0) {
+            return new ResponseEntity<>(res, HttpStatus.NOT_FOUND);
+        } else if (res.getCode() == 1) {
+            return new ResponseEntity<>(res, HttpStatus.CONFLICT);
+        } else if (res.getCode() == 2){
+            return new ResponseEntity<>(res, HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(res, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 
     //-------------------
@@ -119,8 +183,23 @@ public class UserController {
             }
     )
     @DeleteMapping(path = "{usuarioId}")
-    public ResponseEntity<Object> deleteUser(@PathVariable("usuarioId") Long UserId, @RequestHeader(name = "Authorization") String token){
-        return this.userService.deleteUser(UserId, token);
+    public ResponseEntity<UserResponseDTO> deleteUser(@PathVariable("usuarioId") Long UserId, @RequestHeader(name = "Authorization") String token){
 
+        if(jwtUtil.getPermission(token) != 2) {
+            UserResponseDTO res = new UserResponseDTO();
+            res.setMessage("Usuario no autorizado");
+            res.setCode(0);
+            return new ResponseEntity<>(res, HttpStatus.UNAUTHORIZED);
+        }
+
+        UserResponseDTO res = userService.deleteUser(UserId);
+
+        if (res.getCode() == 1) {
+            return new ResponseEntity<>(res, HttpStatus.CONFLICT);
+        } else if (res.getCode() == 2){
+            return new ResponseEntity<>(res, HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(res, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 }

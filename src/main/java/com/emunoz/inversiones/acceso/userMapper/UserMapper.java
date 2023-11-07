@@ -2,7 +2,7 @@ package com.emunoz.inversiones.acceso.userMapper;
 
 import com.emunoz.inversiones.acceso.models.entity.UserEntity;
 import com.emunoz.inversiones.acceso.models.request.UserRequestDTO;
-import com.emunoz.inversiones.acceso.models.response.UserResponseDTO;
+import com.emunoz.inversiones.acceso.models.response.UserDataResponseDTO;
 
 public class UserMapper {
     public static UserEntity toEntity(UserRequestDTO userRequest) {
@@ -15,8 +15,8 @@ public class UserMapper {
         return userEntity;
     }
 
-    public static UserResponseDTO toResponseDTO(UserEntity userEntity) {
-        UserResponseDTO responseDTO = new UserResponseDTO();
+    public static UserDataResponseDTO toResponseDTO(UserEntity userEntity) {
+        UserDataResponseDTO responseDTO = new UserDataResponseDTO();
         responseDTO.setId(userEntity.getId());
         responseDTO.setName(userEntity.getName());
         responseDTO.setEmail(userEntity.getEmail());

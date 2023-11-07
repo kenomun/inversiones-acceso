@@ -2,6 +2,8 @@ package com.emunoz.inversiones.acceso.controllers;
 
 import com.emunoz.inversiones.acceso.Validation.ValidationUtils;
 import com.emunoz.inversiones.acceso.models.loginRequest.LoginRequestDTO;
+import com.emunoz.inversiones.acceso.models.response.UserLoginResponseDTO;
+import com.emunoz.inversiones.acceso.models.response.UserResponseDTO;
 import com.emunoz.inversiones.acceso.services.AuthServices;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -43,21 +45,25 @@ public class AuthController {
             }
     )
     @PostMapping
-    public ResponseEntity<Object> login(@Validated @RequestBody LoginRequestDTO loginRequestDTO, BindingResult bindingResult) {
+    public ResponseEntity<UserLoginResponseDTO> login(@Validated @RequestBody LoginRequestDTO loginRequestDTO, BindingResult bindingResult) {
 
-        ResponseEntity<Object> validationError = validationUtils.handleValidationErrors(bindingResult);
+        ResponseEntity<UserLoginResponseDTO> validationError = validationUtils.handleValidationLoginErrors(bindingResult);
         if (validationError != null) {
             return validationError;
         }
 
-        ResponseEntity<Object> result = authServices.SearchUserByCredentials(loginRequestDTO);
+        UserLoginResponseDTO res = authServices.SearchUserByCredentials(loginRequestDTO);
 
-        // Usuario no existe o error de password
-        if(result.getStatusCode() == HttpStatus.NOT_FOUND || result.getStatusCode() == HttpStatus.UNAUTHORIZED){
-            return new ResponseEntity<>(result.getBody(), result.getStatusCode());
+        if (res.getCode() == 0) {
+            return new ResponseEntity<>(res, HttpStatus.NOT_FOUND);
+        } else if (res.getCode() == 1) {
+            return new ResponseEntity<>(res, HttpStatus.UNAUTHORIZED);
+        } else if (res.getCode() == 2){
+            return new ResponseEntity<>(res, HttpStatus.OK);
+        } else {
+            return new ResponseEntity<>(res, HttpStatus.INTERNAL_SERVER_ERROR);
         }
-        // Usuario logeado
-        return new ResponseEntity<>(result.getBody(), result.getStatusCode());
+
 
     }
 }

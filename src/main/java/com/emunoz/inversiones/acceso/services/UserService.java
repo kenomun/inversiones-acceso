@@ -1,16 +1,17 @@
 package com.emunoz.inversiones.acceso.services;
 
 import com.emunoz.inversiones.acceso.models.request.UserRequestDTO;
+import com.emunoz.inversiones.acceso.models.response.UserResponseDTO;
 import org.springframework.http.ResponseEntity;
 
 public interface UserService {
 
-    ResponseEntity<Object> getUsers();
+    UserResponseDTO getUsersAll();
 
-    ResponseEntity<Object> getUserById(Long id);
+    UserResponseDTO getUserById(Long id);
 
-    ResponseEntity<Object> createUser(UserRequestDTO userRequest);
-    ResponseEntity<Object> updateUser(UserRequestDTO userRequest);
+    UserResponseDTO createUser(UserRequestDTO userRequest);
+    UserResponseDTO updateUser(UserRequestDTO userRequest);
 
-    ResponseEntity<Object> deleteUser(Long id, String token);
+    UserResponseDTO deleteUser(Long id);
 }
