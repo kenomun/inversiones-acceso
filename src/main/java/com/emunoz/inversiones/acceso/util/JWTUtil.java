@@ -1,15 +1,17 @@
 package com.emunoz.inversiones.acceso.util;
 
+import com.emunoz.inversiones.acceso.models.entity.RevokedTokenEntity;
+import com.emunoz.inversiones.acceso.repositry.LogoutRepository;
 import io.jsonwebtoken.*;
 import lombok.extern.log4j.Log4j2;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import javax.crypto.spec.SecretKeySpec;
 import javax.xml.bind.DatatypeConverter;
 import java.security.Key;
 import java.util.Date;
+import java.util.Optional;
 
 /**
  * @author Mahesh
@@ -25,6 +27,9 @@ public class JWTUtil {
 
     @Value("${security.jwt.ttlMillis}")
     private long ttlMillis;
+
+    @Autowired
+    private LogoutRepository revokedTokenRepository;
 
     /**
      * Create a new token.
@@ -68,13 +73,11 @@ public class JWTUtil {
      * @return
      */
     public String getValue(String jwt) {
-        log.info("Token email {}",jwt);
         // This line will throw an exception if it is not a signed JWS (as
         // expected)
         Claims claims = Jwts.parser().setSigningKey(DatatypeConverter.parseBase64Binary(key))
                 .parseClaimsJws(jwt).getBody();
 
-        log.info("Token Email {}",claims.getSubject());
         return claims.getSubject();
 
     }
@@ -91,26 +94,54 @@ public class JWTUtil {
         Claims claims = Jwts.parser().setSigningKey(DatatypeConverter.parseBase64Binary(key))
                 .parseClaimsJws(jwt).getBody();
 
-        log.info("ID {}",claims.getId());
         return claims.getId();
     }
 
 
     public Integer getPermission(String jwt) {
-        log.info("Token permission {}",jwt);
         // This line will throw an exception if it is not a signed JWS (as
         // expected)
+
         try {
+            Optional<RevokedTokenEntity> revokedTokenEntity = revokedTokenRepository.findByToken(jwt);
+            if (revokedTokenEntity.isPresent()){
+                return 0;
+            }
+
             Claims claims = Jwts.parser().setSigningKey(DatatypeConverter.parseBase64Binary(key))
                     .parseClaimsJws(jwt).getBody();
 
             return Integer.parseInt(claims.get("permission", String.class));
         } catch (SignatureException ex){
-            log.error(ex.getMessage());
             return 0;
         }
 
     }
+
+    public Integer getFullPermission(String jwt, Long id, String email){
+
+        Optional<RevokedTokenEntity> revokedTokenEntity = revokedTokenRepository.findByToken(jwt);
+        if (revokedTokenEntity.isPresent()){
+            return 0;
+        }
+
+        Integer permission = this.getPermission(jwt);
+        if (permission == 2) {
+            return 2;
+        }
+
+        String key = this.getKey(jwt);
+        String value = this.getValue(jwt);
+
+        if (key.equals(String.valueOf(id)) && value.equals(email)) {
+            return 2;
+        }
+
+        return 0;
+
+    }
+
+
 
     public void verifyToken(String jwt) {
         try {

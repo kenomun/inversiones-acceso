@@ -3,6 +3,7 @@ package com.emunoz.inversiones.acceso.models.response;
 import lombok.Data;
 
 @Data
+
 public class UserDataResponseDTO {
 
     private Long id;

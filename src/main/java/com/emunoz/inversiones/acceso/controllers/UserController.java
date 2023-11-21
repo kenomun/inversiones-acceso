@@ -3,7 +3,7 @@ package com.emunoz.inversiones.acceso.controllers;
 import com.emunoz.inversiones.acceso.Validation.ValidationUtils;
 import com.emunoz.inversiones.acceso.models.request.UserRequestDTO;
 import com.emunoz.inversiones.acceso.models.response.UserResponseDTO;
-import com.emunoz.inversiones.acceso.services.UserServiceImpl;
+import com.emunoz.inversiones.acceso.services.UserService;
 import com.emunoz.inversiones.acceso.util.JWTUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
@@ -19,18 +19,14 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Objects;
 
 @RestController
 @Log4j2
 @RequestMapping(path = "api/V1/usuario")
 public class UserController {
-    private final UserServiceImpl userService;
 
     @Autowired
-    public UserController(UserServiceImpl userService){
-        this.userService = userService;
-    }
+    private UserService userService;
 
     @Autowired
     private ValidationUtils validationUtils;
@@ -50,10 +46,11 @@ public class UserController {
             }
     )
     @GetMapping
-    public ResponseEntity<UserResponseDTO> getUsers(@RequestHeader(name = "Authorization") String token) {
+    public ResponseEntity<UserResponseDTO> getUsersAll(@RequestHeader(name = "Authorization") String token) {
+
         if(jwtUtil.getPermission(token) != 2) {
             UserResponseDTO res = new UserResponseDTO();
-            res.setMessage("Usuario no autorizado");
+            res.setMessage("Usuario no autorizado.");
             res.setCode(0);
             return new ResponseEntity<>(res, HttpStatus.UNAUTHORIZED);
         }
@@ -81,11 +78,11 @@ public class UserController {
             }
     )
     @GetMapping (path = "{usuarioId}")
-    public ResponseEntity<UserResponseDTO> getUser(@PathVariable("usuarioId") Long id, @RequestHeader(name = "Authorization") String token) {
+    public ResponseEntity<UserResponseDTO> getUserById(@PathVariable("usuarioId") Long id, @RequestHeader(name = "Authorization") String token) {
 
         if(jwtUtil.getPermission(token) != 2) {
             UserResponseDTO res = new UserResponseDTO();
-            res.setMessage("Usuario no autorizado");
+            res.setMessage("Usuario no autorizado.");
             res.setCode(0);
             return new ResponseEntity<>(res, HttpStatus.UNAUTHORIZED);
         }
@@ -114,10 +111,7 @@ public class UserController {
     @PostMapping
     public ResponseEntity<UserResponseDTO> createUser(@Validated @RequestBody UserRequestDTO userRequest, BindingResult bindingResult) {
 
-        ResponseEntity<UserResponseDTO> validationError = validationUtils.handleValidationErrors(bindingResult);
-        if (validationError != null) {
-            return validationError;
-        }
+
 
         UserResponseDTO res = userService.createUser(userRequest);
 
@@ -140,15 +134,12 @@ public class UserController {
             }
     )
     @PutMapping
-    public ResponseEntity<UserResponseDTO> updateProduct(@Validated @RequestBody UserRequestDTO userRequest, BindingResult bindingResult, @RequestHeader(name = "Authorization") String token){
+    public ResponseEntity<UserResponseDTO> updateUser(@Validated @RequestBody UserRequestDTO userRequest, BindingResult bindingResult, @RequestHeader(name = "Authorization") String token){
 
-        boolean permissionVerified = jwtUtil.getPermission(token) == 2;
-        boolean idVerified = Objects.equals(jwtUtil.getKey(token), String.valueOf(userRequest.getId()));
-        boolean emailVerified = Objects.equals(jwtUtil.getValue(token), userRequest.getEmail());
 
-        if(!permissionVerified || !emailVerified || !idVerified ) {
+        if(jwtUtil.getFullPermission(token, userRequest.getId(), userRequest.getEmail()) != 2 ) {
             UserResponseDTO res = new UserResponseDTO();
-            res.setMessage("Usuario no autorizado");
+            res.setMessage("Usuario no autorizado.");
             res.setCode(0);
             return new ResponseEntity<>(res, HttpStatus.UNAUTHORIZED);
         }
@@ -187,7 +178,7 @@ public class UserController {
 
         if(jwtUtil.getPermission(token) != 2) {
             UserResponseDTO res = new UserResponseDTO();
-            res.setMessage("Usuario no autorizado");
+            res.setMessage("Usuario no autorizado.");
             res.setCode(0);
             return new ResponseEntity<>(res, HttpStatus.UNAUTHORIZED);
         }
