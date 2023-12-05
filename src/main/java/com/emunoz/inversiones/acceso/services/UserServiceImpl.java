@@ -13,14 +13,8 @@ import de.mkammerer.argon2.Argon2;
 import de.mkammerer.argon2.Argon2Factory;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.dao.DataAccessException;
-import org.springframework.dao.DataIntegrityViolationException;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import java.util.HashMap;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -44,7 +38,7 @@ public class UserServiceImpl implements UserService {
     public UserResponseDTO getUsersAll() {
         UserResponseDTO userResponse = new UserResponseDTO();
 
-        List<UserEntity> userEntitiesEntities = this.userRepository.findAll();
+        List<UserEntity> userEntitiesEntities = userRepository.findAll();
         List<UserDataResponseDTO> userDataResponseDTOs = userEntitiesEntities.stream()
                 .map(userEntity -> {
                     UserDataResponseDTO dto = UserMapper.toResponseDTO(userEntity);

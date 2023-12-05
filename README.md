@@ -2,14 +2,13 @@
 
 Este proyecto de Spring Boot proporciona un servicio de acceso a usuarios con funcionalidades como:
 
-- Creacion de un usuario: todo usuario por defecto sera creado con role básico "user" role "1", para dar permisos de "admin" se debe modificar directamente la base de datos con role "2")
+- Creacion de un usuario: todo usuario por defecto sera creado con role básico "user" role "1")
 - Login: Todos los usuarios que se logeen recibiran un token.
 - Listar usuarios registrados (solo con token valido).
 - Buscar usuario registrado por id (solo con token valido).
 - Eliminar usuario registrado (solo con token valido).
 - Logout (servicio deja el token inutilizable).
 - CRUD Básico Restful
-- Consumo de API Externa
 - Cifrado de Datos
 - Seguridad en los servicios
 
@@ -26,7 +25,6 @@ Este proyecto de Spring Boot proporciona un servicio de acceso a usuarios con fu
 
 - Java 8
 - Maven 3.x
-- PostgreSQL
 
 ## Dependencias
 
@@ -40,14 +38,33 @@ Este proyecto de Spring Boot proporciona un servicio de acceso a usuarios con fu
 - Lombok 1.18.24
 - JUnit 5.9.1
 - Mockito 4.9.0
+- h2database
 
-### Base de Datos
+## Base de Datos
 
-- La aplicación utiliza PostgreSQL. Asegúrate de configurar correctamente la conexión en el archivo `application.properties`.
-- para la creación de tabla los script se encuntran en Jira.
-- La creacion de la base de datos y tabla se debe hacer de forma manual. (en proceso para que se cree de forma automatica al correr el servicio)
-- El ingreso de datos como la creacion de usuario se hara solamente por medio del servicio. en proceso para que se cree de forma automatica al correr el servicio un usuario "usuer" y otro "admin"
+- La aplicacion trabaja con una base de datos en memoria la cual se genera al momento de levantar el servicio.
+- Al momento de generar la base de datos de forma automatica esta llenara las tablas con los siguientes datos:
+    
+  Roles:
+    * role: usuario, permission: 1 
+    * role: admin, permission: 2
+    
+  Users:
+    * email: user@example.com, password: 321654
+    * email: admin@example.com, password: 321654
 
+con los usuarios creados podra hacer login al servicio o crear su propio usuario (se creara por defecto como user) 
+
+para examinar la base de datos entrar al link siguiente una vez levantado el servicio:
+
+* User Name: sa
+* Password: password
+
+- http://localhost:8080/h2-console
+
+## Para las pruebas en Postman se podr aimportar la coleecion de las siguiente dirección:
+
+- https://api.postman.com/collections/20444141-702393e7-8f71-4ff3-94c4-169f9e86c15a?access_key=PMAT-01HGXJKR0Z5SQ6C6WTZ496QJ7E
 
 ## Documentación
 

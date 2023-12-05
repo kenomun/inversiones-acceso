@@ -1,7 +1,9 @@
 package com.emunoz.inversiones.acceso.models.entity;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import javax.persistence.Entity;
 import javax.persistence.Id;
@@ -11,6 +13,8 @@ import javax.persistence.Table;
 @Table(name = "roles")
 @Data
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class RoleEntity {
 
     @Id
@@ -18,12 +22,4 @@ public class RoleEntity {
     private String description;
     private Integer permission;
 
-    public RoleEntity() {
-
-    }
-    public RoleEntity(Integer id, String description, int permission) {
-        this.id = id;
-        this.description = description;
-        this.permission = permission;
-    }
 }
