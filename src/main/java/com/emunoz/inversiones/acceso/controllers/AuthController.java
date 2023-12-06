@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     @Autowired
-    private final AuthServices authServices;
+    private  AuthServices authServices;
 
     @Autowired
     private ValidationUtils validationUtils;
@@ -30,9 +30,6 @@ public class AuthController {
     @Autowired
     private JWTUtil jwtUtil;
 
-    public AuthController(AuthServices authServices) {
-        this.authServices = authServices;
-    }
 
 
     // ---------------------------------
@@ -71,16 +68,14 @@ public class AuthController {
     public ResponseEntity<UserResponseDTO> Logo(@RequestHeader(name = "Authorization") String token) {
         if(jwtUtil.getPermission(token) != 2) {
             UserResponseDTO res = new UserResponseDTO();
-            res.setMessage("Usuario no autorizado");
+            res.setMessage("Usuario no autorizado.");
             res.setCode(0);
             return new ResponseEntity<>(res, HttpStatus.UNAUTHORIZED);
         }
 
         UserResponseDTO res = authServices.logoutService(token);
 
-        if (res.getCode() == 1){
-            return new ResponseEntity<>(res, HttpStatus.UNAUTHORIZED);
-        } else if (res.getCode() == 2){
+        if (res.getCode() == 2){
             return new ResponseEntity<>(res, HttpStatus.OK);
         } else {
             return new ResponseEntity<>(res, HttpStatus.INTERNAL_SERVER_ERROR);
